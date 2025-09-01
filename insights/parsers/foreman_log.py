@@ -31,7 +31,10 @@ ForemanSSLAccessLog - file ``/var/log/httpd/foreman-ssl_access_ssl.log``
 ForemanSSLErrorLog - file ``/var/log/httpd/foreman-ssl_error_ssl.log``
 ----------------------------------------------------------------------
 
+ForemanLog - file ``/var/log/foreman-installer/foreman.log``
+----------------------------------------------------------------------
 """
+
 from datetime import datetime
 
 from .. import LogFileOutput, parser
@@ -41,15 +44,24 @@ from insights.specs import Specs
 @parser(Specs.foreman_proxy_log)
 class ProxyLog(LogFileOutput):
     """Class for parsing ``foreman-proxy/proxy.log`` file."""
+
     time_format = {
         'standard': '%d/%b/%Y:%H:%M:%S',  # 31/May/2016:09:57:34
-        'error': '%Y-%m-%dT%H:%M:%S.%f'  # 2016-05-31T09:57:35.884636
+        'error': '%Y-%m-%dT%H:%M:%S.%f',  # 2016-05-31T09:57:35.884636
     }
 
 
 @parser(Specs.foreman_satellite_log)
 class SatelliteLog(LogFileOutput):
     """Class for parsing ``foreman-installer/satellite.log`` file."""
+
+    pass
+
+
+@parser(Specs.foreman_log)
+class ForemanLog(LogFileOutput):
+    """Class for parsing ``/var/log/foreman-installer/foreman.log` file."""
+
     pass
 
 
@@ -63,12 +75,15 @@ class ProductionLog(LogFileOutput):
         * message (str) - the body of the log
         * timestamp (datetime) - date and time of log as datetime object
     """
+
     def _parse_line(self, line):
         msg_info = {'raw_message': line}
         line_split = line.split(None, 2)
         if len(line_split) > 2:
             try:
-                msg_info['timestamp'] = datetime.strptime(' '.join(line_split[:2]), self.time_format)
+                msg_info['timestamp'] = datetime.strptime(
+                    ' '.join(line_split[:2]), self.time_format
+                )
                 msg_info['message'] = line_split[2]
             except ValueError:
                 pass
@@ -116,7 +131,9 @@ class CandlepinLog(LogFileOutput):
         line_split = line.split(None, 2)
         if len(line_split) > 2:
             try:
-                msg_info['timestamp'] = datetime.strptime(' '.join(line_split[:2]), self.time_format)
+                msg_info['timestamp'] = datetime.strptime(
+                    ' '.join(line_split[:2]), self.time_format
+                )
                 msg_info['message'] = line_split[2]
             except ValueError:
                 pass
@@ -147,6 +164,7 @@ class CandlepinErrorLog(LogFileOutput):
         >>> list(candlepin_log.get_after(datetime(2016, 9, 7, 16, 0, 0)))[0]['raw_message']
         '2016-09-07 16:49:24,650 [=, org=] WARN  org.apache.qpid.transport.network.security.ssl.SSLUtil - Exception received while trying to verify hostname'
     """
+
     pass
 
 
@@ -177,6 +195,7 @@ class ForemanSSLAccessLog(LogFileOutput):
         >>> foreman_ssl_acess_log.get('consumers/385e688f-43ad-41b2-9fc7-593942ddec78')[0]['timestamp']
         datetime.datetime(2017, 3, 27, 13, 34, 52)
     """
+
     # Actual time format - '%d/%b/%Y:%H:%M:%S %z' but %z doesn't work for python 2
     time_format = '%d/%b/%Y:%H:%M:%S'
 

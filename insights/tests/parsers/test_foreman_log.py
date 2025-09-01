@@ -5,9 +5,18 @@ from insights.parsers.foreman_log import CandlepinLog, ProxyLog
 from insights.parsers.foreman_log import CandlepinErrorLog
 from insights.parsers.foreman_log import ForemanSSLAccessLog
 from insights.parsers.foreman_log import ForemanSSLErrorLog
+from insights.parsers.foreman_log import ForemanLog
 from datetime import datetime
 import doctest
 
+FOREMAN_LOG = """
+2024-09-05 07:40:42 [NOTICE] [root] Loading installer configuration. This will take some time.
+2024-09-05 07:40:46 [NOTICE] [root] Running installer with log based terminal output at level NOTICE.
+2024-09-05 07:40:46 [NOTICE] [root] Use -l to set the terminal output log level to ERROR, WARN, NOTICE, INFO, or DEBUG. See --full-help for definitions.
+2024-09-05 07:40:53 [NOTICE] [configure] Starting system configuration.
+2024-09-05 07:40:57 [ERROR ] [configure] Evaluation Error: Error while evaluating a Function Call, Could not find template 'mosquitto/mosquitto.conf' (file: /usr/share/foreman-installer/modules/mosquitto/manifests/config.pp, line: 26, column: 16) on node centos8-stream-foreman-nightly.tanso.example.com
+2024-09-05 07:40:57 [NOTICE] [configure] System configuration has finished.
+""".strip()
 
 PRODUCTION_LOG = """
 2015-11-13 03:30:07 [I] Completed 200 OK in 1783ms (Views: 0.2ms | ActiveRecord: 172.9ms)
@@ -189,16 +198,31 @@ FOREMAN_SSL_ERROR_SSL_LOG = """
 """.strip()
 
 
+def test_foreman_log():
+    foremanlog = ForemanLog(context_wrap(FOREMAN_LOG))
+    assert "System configuration has finished" in foremanlog
+    assert (
+        "Starting system configuration."
+        in foremanlog.get("Starting system configuration")[0]["raw_message"]
+    )
+    assert len((list(foremanlog.get_after(datetime(2024, 8, 5, 13, 9, 50))))) == 6
+    assert len((list(foremanlog.get_after(datetime(2024, 9, 5, 7, 40, 57))))) == 2
+
+
 def test_production_log():
     fm_log = ProductionLog(context_wrap(PRODUCTION_LOG))
     assert 2 == len(fm_log.get("Rendered text template"))
     line_dict = fm_log.get("Katello::Api::V2::RepositoriesController#sync_complete")[0]
-    assert line_dict["message"] == \
-        "[I] Processing by Katello::Api::V2::RepositoriesController#sync_complete as JSON"
+    assert (
+        line_dict["message"]
+        == "[I] Processing by Katello::Api::V2::RepositoriesController#sync_complete as JSON"
+    )
     assert line_dict["timestamp"] == datetime(2015, 11, 13, 3, 30, 7)
     assert "Expired 48 Reports" in fm_log
-    assert fm_log.get("Completed 200 OK in 93")[0]['raw_message'] == \
-        "2015-11-13 09:41:58 [I] Completed 200 OK in 93ms (Views: 2.9ms | ActiveRecord: 0.3ms)"
+    assert (
+        fm_log.get("Completed 200 OK in 93")[0]['raw_message']
+        == "2015-11-13 09:41:58 [I] Completed 200 OK in 93ms (Views: 2.9ms | ActiveRecord: 0.3ms)"
+    )
     assert len(list(fm_log.get_after(datetime(2015, 11, 13, 9, 41, 58)))) == 7
 
 
@@ -218,7 +242,9 @@ def test_candlepin_log():
     assert len(cp_log.get("req=bd5a4284-d280-4fc5-a3d5-fc976b7aa5cc")) == 2
     # https://github.com/RedHatInsights/insights-core/pull/2641
     # assert len(list(cp_log.get_after(datetime(2016, 9, 9, 13, 45, 53)))) == 2
-    assert cp_log.get("req=bd5a4284-d280-4fc5-a3d5-fc976b7aa5cc")[0]['timestamp'] == datetime(2016, 9, 9, 13, 45, 52, 650000)
+    assert cp_log.get("req=bd5a4284-d280-4fc5-a3d5-fc976b7aa5cc")[0]['timestamp'] == datetime(
+        2016, 9, 9, 13, 45, 52, 650000
+    )
 
 
 def test_satellite_log():
@@ -242,7 +268,9 @@ def test_foreman_ssl_access_ssl_log():
     assert len(foreman_ssl_access_log.get("GET /rhsm/consumers")) == 5
     assert len(foreman_ssl_access_log.get("385e688f-43ad-41b2-9fc7-593942ddec78")) == 3
     assert foreman_ssl_access_log.get('/rhsm/consumers')[0].get('host') == '10.181.73.211'
-    assert foreman_ssl_access_log.get('/rhsm/consumers')[0].get('timestamp') == datetime(2017, 3, 27, 13, 34, 52)
+    assert foreman_ssl_access_log.get('/rhsm/consumers')[0].get('timestamp') == datetime(
+        2017, 3, 27, 13, 34, 52
+    )
 
     foreman_ssl_access_log = ForemanSSLAccessLog(context_wrap(FOREMAN_SSL_ACCESS_SSL_LOG_WRONG))
     assert len(foreman_ssl_access_log.get('GET')) == 2
@@ -252,15 +280,19 @@ def test_foreman_ssl_error_ssl_log():
     ForemanSSLErrorLog.last_scan('test_error_1', 'error reading status line from remote server')
     foreman_ssl_access_log = ForemanSSLErrorLog(context_wrap(FOREMAN_SSL_ERROR_SSL_LOG))
     assert foreman_ssl_access_log.test_error_1
-    assert 'error reading status line from remote server yyy' in foreman_ssl_access_log.test_error_1.get('raw_message')
+    assert (
+        'error reading status line from remote server yyy'
+        in foreman_ssl_access_log.test_error_1.get('raw_message')
+    )
 
 
 def test_doc():
-    failed_count, tests = doctest.testmod(foreman_log,
+    failed_count, tests = doctest.testmod(
+        foreman_log,
         globs={
             "cp_log": CandlepinLog(context_wrap(CANDLEPIN_LOG)),
             "candlepin_log": CandlepinErrorLog(context_wrap(CANDLEPIN_ERROR_LOG)),
-            "foreman_ssl_acess_log": ForemanSSLAccessLog(context_wrap(FOREMAN_SSL_ACCESS_SSL_LOG))
-        }
+            "foreman_ssl_acess_log": ForemanSSLAccessLog(context_wrap(FOREMAN_SSL_ACCESS_SSL_LOG)),
+        },
     )
     assert failed_count == 0

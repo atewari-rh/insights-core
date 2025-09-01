@@ -236,6 +236,7 @@ class Specs(SpecSet):
     foreman_proxy_log = RegistryPoint(filterable=True)
     foreman_rake_db_migrate_status = RegistryPoint(no_obfuscate=['hostname', 'ipv4', 'ipv6', 'mac'])
     foreman_satellite_log = RegistryPoint(filterable=True)
+    foreman_log = RegistryPoint(filterable=True)
     foreman_ssl_access_ssl_log = RegistryPoint(filterable=True)
     foreman_ssl_error_ssl_log = RegistryPoint(filterable=True)
     foreman_tasks_config = RegistryPoint(filterable=True)
@@ -436,12 +437,8 @@ class Specs(SpecSet):
     lsblk_pairs = RegistryPoint()
     lscpu = RegistryPoint(no_obfuscate=['hostname', 'ipv4', 'ipv6', 'mac'])
     lsinitrd = RegistryPoint(filterable=True, no_obfuscate=['ipv4', 'ipv6', 'mac'])
-    lsinitrd_kdump_image = RegistryPoint(
-        filterable=True, no_obfuscate=['ipv4', 'ipv6', 'mac']
-    )
-    lsinitrd_lvm_conf = RegistryPoint(
-        filterable=True, no_obfuscate=['ipv4', 'ipv6', 'mac']
-    )
+    lsinitrd_kdump_image = RegistryPoint(filterable=True, no_obfuscate=['ipv4', 'ipv6', 'mac'])
+    lsinitrd_lvm_conf = RegistryPoint(filterable=True, no_obfuscate=['ipv4', 'ipv6', 'mac'])
     lsmod = RegistryPoint(no_obfuscate=['hostname', 'ipv4', 'ipv6', 'mac'])
     lsof = RegistryPoint(filterable=True)
     lspci = RegistryPoint(no_obfuscate=['hostname', 'ipv4', 'ipv6', 'mac'])
@@ -811,9 +808,7 @@ class Specs(SpecSet):
         no_obfuscate=['hostname', 'ipv4', 'ipv6', 'mac']
     )
     subscription_manager_status = RegistryPoint(no_obfuscate=['hostname', 'ipv4', 'ipv6', 'mac'])
-    subscription_manager_syspurpose = RegistryPoint(
-        no_obfuscate=['ipv4', 'ipv6', 'mac']
-    )
+    subscription_manager_syspurpose = RegistryPoint(no_obfuscate=['ipv4', 'ipv6', 'mac'])
     sudoers = RegistryPoint(multi_output=True, filterable=True)
     swift_conf = RegistryPoint()
     swift_log = RegistryPoint(filterable=True)
